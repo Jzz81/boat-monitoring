@@ -6,69 +6,51 @@
 #include "network.h"
 #include "influxdb.h"
 #include "sleep.h"
+#include "webserver.h"
+#include "output.h"
 
 #include <LittleFS.h>
 
 uint32_t id;
-
-
-void uploadDataPoints()
-{
-    Serial.println("Find first data to upload...");
-
-    size_t position;
-    int result = findUploadDatapointFilePosition(position);
-    if(result==-1)
-    {
-        Serial.println("Could not read file for upload candidates");
-        return;
-    }
-
-    if (result==-2)
-    {
-        Serial.println("No upload candidates");
-        return;
-    }
-
-    while (result == 0)
-    {
-        //upload candidates found.
-        DataPoint data;
-        if (readDataPoint(position,data))
-        {
-            if (uploadDataPoint(data))
-            {
-                if (!markAsUploaded(position))
-                {
-                    Serial.println("Could not markt data point as uploaded (upload was succesfull)...");
-                }
-            }
-        }
-        result = findUploadDatapointFilePosition(position);
-    }
-}
+constexpr uint32_t WIFI_CHECK_INTERVAL = 5000;
+uint32_t lastWifiCheck = millis() - WIFI_CHECK_INTERVAL;
 
 void measurement() {
     DataPoint data = DataPoint();
     data.id = id++;
 
     if (!readSensors(data)){
-        Serial.println("Sensor error!");
+        outputWarning("MAIN","Sensor error!");
     }
     readTime(data);
+    setCurrentData(data);
+
+    //TO BE REFACTORED:
+    //logica scheiden tussen online en offline in 2 routines.
+
     if (storeDataPoint(data) == StorageResult::FLUSHED) {
-        if (!connectWifi(config.offlineWifiSsid,
-                    config.offlineWifiPassword))
+        if (config.mode == MODE_OFFLINE)
         {
-            Serial.println("Could not connect to wifi.");
+            if (!connectWifi(config.offlineWifiSsid,
+                        config.offlineWifiPassword))
+            {
+                outputWarning("MAIN","Could not connect to wifi.");
+            } else {
+                if(syncTime())
+                {
+                    uploadDataPoints();
+                } else {
+                    outputWarning("MAIN","Could not synchronize time. Upload skipped.");
+                }
+                disconnectWifi();
+            }
         } else {
             if(syncTime())
             {
                 uploadDataPoints();
             } else {
-                Serial.println("Could not synchronize time. Upload skipped.");
+                outputWarning("MAIN","Could not synchronize time. Upload skipped.");
             }
-            disconnectWifi();
         }
     }
     printDataPoint(data);
@@ -79,46 +61,73 @@ void setup() {
     delay(1000);
 
     if (initStorage()){
-        Serial.println("LittleFS OK");
+        outputInfo("MAIN","LittleFS OK");
     } else {
-        Serial.println("LittleFS FAILED");
+        outputWarning("MAIN","LittleFS FAILED");
     }
 
     if (!loadConfig())
     {
-        Serial.println("Could not load config, reverting to default config...");
+        outputWarning("MAIN","Could not load config, reverting to default config...");
         loadDefaultConfig();
     }
-    Serial.println("config loaded.");
+    outputInfo("MAIN","config loaded.");
     printConfig();
 
     if (!loadSensorCommunication()){
-        Serial.println("sensor communication failed...");
+        outputWarning("MAIN","sensor communication failed...");
     }
-
     //FOR DEBUG ONLY:
-    config.measurement_interval_seconds = 60;
+    config.offline_measurement_interval_seconds = 60;
     //clearMeasurements(); // clear measurements file
 
     if (!lastStoredId(id))
     {
         id = 0;
     }
-    if (!wokeFromTimer())
+
+    if (config.mode == MODE_ONLINE)
     {
-        //connect to wifi and sync time value.
-        connectWifi(config.offlineWifiSsid, config.offlineWifiPassword);
-        syncTime();
-        disconnectWifi();
+        outputInfo("MAIN","Starting ONLINE mode...");
+
+        connectWifi(config.onlineWifiSsid, config.onlineWifiPassword);
+        initWebServer();
+    } else {
+
+        outputInfo("MAIN","Starting OFFLINE mode...");
+        if (!wokeFromTimer())
+        {
+            //connect to wifi and sync time value.
+            connectWifi(config.offlineWifiSsid, config.offlineWifiPassword);
+            syncTime();
+            disconnectWifi();
+        }
+        measurement();
+        deepSleepSeconds(config.offline_measurement_interval_seconds);
     }
-    measurement();
-    deepSleepSeconds(config.measurement_interval_seconds);
 }
 
+uint32_t lastMeasurement = 0;
 
 void loop() {
-    return;
-    measurement();
+    if (config.mode == MODE_ONLINE)
+    {
+        if (millis() - lastWifiCheck >= WIFI_CHECK_INTERVAL)
+        {
+            if(!checkWifiConnected())
+            {
+                connectWifi(config.onlineWifiSsid, config.onlineWifiPassword);
+            }
+            lastWifiCheck = millis();
+        }
 
-    delay(config.measurement_interval_seconds * 1000);
+        handleWebServer();
+        if (lastMeasurement == 0 || 
+            millis()-lastMeasurement >= config.online_measurement_interval_seconds * 1000UL)
+        {
+            measurement();
+            lastMeasurement = millis();
+       }
+
+    }
 }

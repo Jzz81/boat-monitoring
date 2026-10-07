@@ -10,6 +10,8 @@
             "includePath": [
                 "/home/joos/boat-monitoring/include",
                 "/home/joos/boat-monitoring/src",
+                "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
+                "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/LittleFS/src",
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
@@ -221,7 +223,6 @@
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/ESPmDNS/src",
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/Ethernet/src",
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/FFat/src",
-                "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdate/src",
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdateServer/src",
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/I2S/src",
@@ -237,7 +238,6 @@
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/USB/src",
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/Update/src",
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
-                "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                 "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
                 ""
             ],
@@ -246,6 +246,8 @@
                 "path": [
                     "/home/joos/boat-monitoring/include",
                     "/home/joos/boat-monitoring/src",
+                    "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
+                    "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/LittleFS/src",
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
@@ -457,7 +459,6 @@
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/ESPmDNS/src",
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/Ethernet/src",
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/FFat/src",
-                    "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdate/src",
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdateServer/src",
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/I2S/src",
@@ -473,7 +474,6 @@
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/USB/src",
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/Update/src",
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
-                    "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                     "/home/joos/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
                     ""
                 ]

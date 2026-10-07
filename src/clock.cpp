@@ -1,16 +1,17 @@
 #include "clock.h"
 #include <sys/time.h>
 #include <time.h>   // nodig voor configTime()
+#include "output.h"
 
 RTC_DATA_ATTR uint32_t lastTimeSync = 0;
 
 bool syncTime()
 {
-     Serial.println("Synchronizing time with NTP...");
+    outputInfo("CLOCK","Synchronizing time with NTP...");
     //Use only UTC:
     configTime(0, 0, "pool.ntp.org", "time.nist.gov");
 
-    Serial.println("Waiting for NTP time...");
+    outputInfo("CLOCK","Waiting for NTP time...");
 
     struct tm timeinfo;
 
@@ -20,17 +21,14 @@ bool syncTime()
         {
             lastTimeSync = getTimestamp();
 
-            Serial.println("Time synchronized.");
-            Serial.print("Unix time: ");
-            Serial.println(lastTimeSync);
+            outputInfo("CLOCK","Time synchronized. Unix time: " + String(lastTimeSync));
             return true;
         }
 
         Serial.print(".");
     }
 
-    Serial.println();
-    Serial.println("NTP synchronization failed.");
+    outputWarning("CLOCK","NTP synchronization failed.");
 
     return false;
 }

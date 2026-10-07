@@ -1,41 +1,44 @@
 #include "network.h"
+#include "output.h"
 #include <WiFi.h>
+
 
 bool initWifi()
 {
     WiFi.mode(WIFI_STA);
-    Serial.println("Wifi intiatialiseren...");
+    outputInfo("WIFI","Initializing Wifi...");
     return true;
 }
 
 void scanWifi()
 {
-    Serial.println("WiFi netwerken zoeken...");
+    outputInfo("WIFI","Scanning for WiFi networks...");
 
     int numberOfNetworks = WiFi.scanNetworks();
 
     if (numberOfNetworks < 0)
     {
-        Serial.println("WiFi scan mislukt!");
+        outputWarning("WIFI","WiFi scan failed!");
         return;
     }
 
-    Serial.print("Aantal netwerken: ");
-    Serial.println(numberOfNetworks);
+    outputInfo("WIFI","Number of networks: " + String(numberOfNetworks));
 
     for (int i = 0; i < numberOfNetworks; i++)
     {
-        Serial.print(i + 1);
-        Serial.print(": ");
-        Serial.print(WiFi.SSID(i));
-        Serial.print("  RSSI: ");
-        Serial.print(WiFi.RSSI(i));
-        Serial.print(" dBm");
+        String line;
+        line = String(i + 1);
+        line += ": ";
+        line += WiFi.SSID(i);
+        line += "  RSSI: ";
+        line += WiFi.RSSI(i);
+        line += " dBm";
 
         if (WiFi.encryptionType(i) == WIFI_AUTH_OPEN)
-            Serial.println("  OPEN");
+            line += "  OPEN";
         else
-            Serial.println("  beveiligd");
+            line += "  secured";
+        outputInfo("WIFI",line);
     }
 
     WiFi.scanDelete();
@@ -43,8 +46,7 @@ void scanWifi()
 
 bool connectWifi(const String& ssid, const String& password)
 {
-    Serial.print("Verbinden met WiFi: ");
-    Serial.println(ssid);
+    outputInfo("WIFI","Connecting to WiFi: " + ssid);
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), password.c_str());
@@ -55,26 +57,41 @@ bool connectWifi(const String& ssid, const String& password)
     {
         if (millis() - start > 10000)
         {
-            Serial.println("WiFi verbinding mislukt");
+            outputWarning("WIFI","WiFi connection failed");
             return false;
         }
 
         delay(250);
-        Serial.print(".");
+        outputSerial(".");
     }
 
-    Serial.println();
-    Serial.println("WiFi verbonden");
-    Serial.print("IP-adres: ");
-    Serial.println(WiFi.localIP());
+    outputSerial("\n");
+    outputInfo("WIFI","WiFi connected");
+    outputInfo("WIFI","IP-address: ");
+    outputInfo("WIFI",String(WiFi.localIP()));
 
     return true;
 }
 
 bool disconnectWifi()
 {
-    Serial.println("WiFi verbinding verbreken...");
+    outputInfo("WIFI","Disconnecting WiFi...");
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     return true;
+}
+
+bool checkWifiConnected()
+{
+    outputSerial("Checking wifi connection...");
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        outputSerial(" connected.\n");
+        return true;
+    }
+
+    outputSerial(" not connected.\n");
+    WiFi.disconnect();
+    return false;
+
 }

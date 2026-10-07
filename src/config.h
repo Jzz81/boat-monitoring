@@ -11,7 +11,8 @@ enum SystemMode {
 struct Config {
     SystemMode mode;
 
-    uint16_t measurement_interval_seconds;
+    uint16_t offline_measurement_interval_seconds;
+    uint16_t online_measurement_interval_seconds;
 
     String deviceName;
 
@@ -25,6 +26,9 @@ struct Config {
     String influxOrg;
     String influxBucket;
     String influxToken;
+
+    String cloudflareClientId;
+    String cloudflareClientSecret;
 };
 
 extern Config config;

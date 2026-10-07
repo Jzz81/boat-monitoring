@@ -1,18 +1,19 @@
 #include "config.h"
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+#include "output.h"
 
 Config config;
 
 bool loadConfig()
 {
-    Serial.println("Loading config...");
+    outputInfo("CONFIG","Loading config...");
 
     File file = LittleFS.open("/settings.json", FILE_READ);
 
     if (!file)
     {
-        Serial.println("Kan settings.json niet openen");
+        outputWarning("CONFIG","Kan settings.json niet openen");
         return false;
     }
     JsonDocument doc;
@@ -23,8 +24,7 @@ bool loadConfig()
 
     if (error)
     {
-        Serial.print("Fout bij lezen settings.json: ");
-        Serial.println(error.c_str());
+        outputWarning("CONFIG","Fout bij lezen settings.json: " + String(error.c_str()));
         return false;
     }
 
@@ -41,14 +41,21 @@ bool loadConfig()
     config.influxBucket = doc["influx_bucket"] | "";
     config.influxToken = doc["influx_token"] | "";
 
-    config.measurement_interval_seconds = doc["measurement_interval_seconds"] | 600;
-    config.mode = MODE_OFFLINE;
+    config.cloudflareClientId =
+        doc["cloudflare_client_id"].as<String>();
+    config.cloudflareClientSecret =
+        doc["cloudflare_client_secret"].as<String>();
+
+        config.offline_measurement_interval_seconds = doc["offline_measurements_interval_seconds"] | 600;
+    config.online_measurement_interval_seconds = doc["online_measurements_interval_seconds"] | 600;
+    config.mode = MODE_ONLINE;
 
     return true;
 }
 
 void loadDefaultConfig()
 {
+    outputInfo("CONFIG","Loading default config.");
     config.deviceName = "boat-monitor";
 
     config.offlineWifiSsid = "";
@@ -62,13 +69,18 @@ void loadDefaultConfig()
     config.influxBucket = "";
     config.influxToken = "";
 
-    config.measurement_interval_seconds = 600;
-    config.mode = MODE_OFFLINE;
+    config.cloudflareClientId = "";
+    config.cloudflareClientSecret = "";
+
+    config.offline_measurement_interval_seconds = 600;
+    config.online_measurement_interval_seconds = 2;
+    config.mode = MODE_ONLINE;
 }
 
 bool saveConfig()
 {
-    Serial.println("Saving config...");
+    
+    outputInfo("CONFIG","Saving config...");
 
     JsonDocument doc;
 
@@ -84,82 +96,91 @@ bool saveConfig()
     doc["influx_bucket"] = config.influxBucket;
     doc["influx_token"] = config.influxToken;
 
-    doc["measurement_interval_seconds"] =
-        config.measurement_interval_seconds;
+    doc["cloudflare_client_id"] = config.cloudflareClientId;
+    doc["cloudflare_client_secret"] = config.cloudflareClientSecret;
+
+    doc["offline_measurement_interval_seconds"] =
+        config.offline_measurement_interval_seconds;
+    doc["online_measurement_interval_seconds"] =
+        config.online_measurement_interval_seconds;
 
     File file = LittleFS.open("/settings.json", FILE_WRITE);
 
     if (!file)
     {
-        Serial.println("Kan settings.json niet openen voor schrijven");
+        outputWarning("CONFIG","Kan settings.json niet openen voor schrijven");
         return false;
     }
 
     if (serializeJsonPretty(doc, file) == 0)
     {
-        Serial.println("Fout bij schrijven settings.json");
+        outputWarning("CONFIG","Fout bij schrijven settings.json");
         file.close();
         return false;
     }
 
     file.close();
 
-    Serial.println("Config opgeslagen");
+    outputInfo("CONFIG","Config opgeslagen");
     return true;
 }
 
 void printConfig()
 {
-    Serial.println();
-    Serial.println("===== CONFIG =====");
+    outputSerial("\n");
+    outputSerial("===== CONFIG =====\n");
 
-    Serial.print("Mode: ");
-    Serial.println((int)config.mode);
+    outputSerial("Mode: ");
+    outputSerial((int)config.mode);
+    outputSerial("\n");
 
-    Serial.print("Measurement interval: ");
-    Serial.print(config.measurement_interval_seconds);
-    Serial.println(" seconds");
+    outputSerial("Online measurement interval: ");
+    outputSerial(config.online_measurement_interval_seconds);
+    outputSerial(" seconds\n");
 
-    Serial.print("Upload interval: ");
-    Serial.print(config.measurement_interval_seconds * 6);
-    Serial.println(" seconds");
+    outputSerial("Offline measurement interval: ");
+    outputSerial(config.offline_measurement_interval_seconds);
+    outputSerial(" seconds\n");
 
-    Serial.print("Device name: ");
-    Serial.println(config.deviceName);
+    outputSerial("Device name: ");
+    outputSerial(config.deviceName);
+    outputSerial("\n");
 
-    Serial.println();
-    Serial.println("--- Offline WiFi ---");
+    outputSerial("\n--- Offline WiFi ---\n");
 
-    Serial.print("SSID: ");
-    Serial.println(config.offlineWifiSsid);
+    outputSerial("SSID: ");
+    outputSerial(config.offlineWifiSsid);
+    outputSerial("\n");
 
-    Serial.print("Password: ");
-    Serial.println(config.offlineWifiPassword.isEmpty() ? "<empty>" : "<set>");
+    outputSerial("Password: ");
+    outputSerial(config.offlineWifiPassword.isEmpty() ? "<empty>" : "<set>\n");
 
-    Serial.println();
-    Serial.println("--- Online WiFi ---");
+    outputSerial("\n--- Online WiFi ---\n");
 
-    Serial.print("SSID: ");
-    Serial.println(config.onlineWifiSsid);
+    outputSerial("SSID: ");
+    outputSerial(config.onlineWifiSsid);
+    outputSerial("\n");
 
-    Serial.print("Password: ");
-    Serial.println(config.onlineWifiPassword.isEmpty() ? "<empty>" : "<set>");
+    outputSerial("Password: ");
+    outputSerial(config.onlineWifiPassword.isEmpty() ? "<empty>" : "<set>\n");
 
-    Serial.println();
-    Serial.println("--- InfluxDB ---");
+    outputSerial("\n--- InfluxDB ---\n");
 
-    Serial.print("Server: ");
-    Serial.println(config.influxServer);
+    outputSerial("Server: ");
+    outputSerial(config.influxServer);
+    outputSerial("\n");
 
-    Serial.print("Organization: ");
-    Serial.println(config.influxOrg);
+    outputSerial("Organization: ");
+    outputSerial(config.influxOrg);
+    outputSerial("\n");
 
-    Serial.print("Bucket: ");
-    Serial.println(config.influxBucket);
+    outputSerial("Bucket: ");
+    outputSerial(config.influxBucket);
+    outputSerial("\n");
 
-    Serial.print("Token: ");
-    Serial.println(config.influxToken.isEmpty() ? "<empty>" : "<set>");
+    outputSerial("Token: ");
+    outputSerial(config.influxToken.isEmpty() ? "<empty>" : "<set>\n");
 
-    Serial.println("==================");
-    Serial.println();
+    outputSerial("==================\n");
+    outputSerial("\n");
 }

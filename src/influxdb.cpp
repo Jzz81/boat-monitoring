@@ -4,19 +4,51 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-bool postInfluxData(const DataPoint& data)
-{
-    /*
-    "http://localhost:8086/api/v2/write?org=Orion&bucket=measurements&precision=s" \
-  --header "Authorization: Token $INFLUX_TOKEN" \
-  --header "Content-Type: text/plain; charset=utf-8" \
-  --data-binary "boat,device=esp32-test temperature_inside=18.7,humidity_inside=71.0,battery_voltage=12.61,battery_soc=82.0 $(date -d '2 hours ago' +%s)"
+#include "output.h"
 
-    */
-   return true;
+constexpr size_t MAX_UPLOAD_BATCH = 24;
+
+void uploadDataPoints()
+{
+    size_t positions[MAX_UPLOAD_BATCH];
+    DataPoint dataPoints[MAX_UPLOAD_BATCH];
+
+    size_t position;
+
+    outputInfo("INFLUXDB","looking for upload candidates...");
+    if (findUploadDatapointFilePosition(position) != 0)
+    {
+        outputInfo("INFLUXDB","No upload candidates found.");
+        return;
+    }
+
+    int count = 0;
+    while (count < MAX_UPLOAD_BATCH)
+    {
+        if (!readDataPoint(position, dataPoints[count]))
+            break;
+        positions[count] = position;
+        count++;
+        position += DATA_POINT_SIZE;
+    }
+    outputInfo("INFLUXDB","Found " + String(count) + "upload candidates.");
+
+    if (count == 0)
+        return;
+
+    bool success = uploadInfluxData(createInfluxMultiLine(dataPoints, count));
+
+    if (!success)
+        return;
+
+    // PAS NU markeren als uploaded
+    for (int i = 0; i < count; i++)
+    {
+        markAsUploaded(positions[i]);
+    }
 }
 
-bool uploadDataPoint(const DataPoint& data)
+bool uploadInfluxData(const String dataString)
 {
 HTTPClient http;
 
@@ -25,25 +57,35 @@ HTTPClient http;
                  "&bucket=" +
                  config.influxBucket +
                  "&precision=s";
-
-    String line = createInfluxLine(data);
-
-    Serial.println("InfluxDB upload:");
-    Serial.println(line);
+    
+    outputInfo("INFLUXDB","InfluxDB upload:" + dataString);
 
     http.begin(url);
 
     http.addHeader("Authorization", "Token " + config.influxToken);
     http.addHeader("Content-Type", "text/plain; charset=utf-8");
+    http.addHeader("CF-Access-Client-Id",config.cloudflareClientId);
+    http.addHeader("CF-Access-Client-Secret",config.cloudflareClientSecret);
 
-    int httpCode = http.POST(line);
+    int httpCode = http.POST(dataString);
 
-    Serial.print("InfluxDB HTTP status: ");
-    Serial.println(httpCode);
+    outputInfo("INFLUXDB","InfluxDB HTTP status: " + httpCode);
 
     http.end();
 
     return httpCode >= 200 && httpCode < 300;
+}
+
+String createInfluxMultiLine(const DataPoint dataPoints[MAX_UPLOAD_BATCH], 
+                            const int count)
+{
+    String lines;
+    for (int i = 0; i < count; i++)
+    {
+        lines += createInfluxLine(dataPoints[i]);
+        lines += "\n";
+    }
+    return lines;
 }
 
 String createInfluxLine(const DataPoint& data)
